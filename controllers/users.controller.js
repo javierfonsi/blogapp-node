@@ -5,51 +5,78 @@ const { Comment } = require('../models/comment.model');
 //Init bcryptjs
 const bcryptjs = require('bcryptjs');
 
-exports.getAllUser = async (req, res) => {
-  try {
-    const user = await User.findAll({
-      Where: {status: 'active'},
-      include: [
-        {
+//util
+const { catchAsync } = require('../util/catchAsync');
+const { AppError } = require('../util/appError');
+
+//Get all User
+exports.getAllUser = catchAsync (async (req, res, next) => {
+  const user = await User.findAll({
+    Where: {status: 'active'},
+    include: [
+      {
+      model: Post,
+      include: [{
+        model: Comment
+      }]
+    }
+  ]
+  });
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user
+    }
+  });
+}) ;
+
+exports.getUserById = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const user = await User.findOne({
+    where: { id: id, status: 'active' },
+    include: [
+      {
         model: Post,
-        include: [{
-          model: Comment
-        }]
+        include: [
+          {
+            model: Comment
+          }
+        ]
       }
+      //,
+      //{ model: Comment, include: [{ model: Post }] }
     ]
-    });
-    res.status(200).json({
-      status: 'success',
-      data: {
-        user
-      }
-    });
-  } catch (error) {
-    console.log(error);
+  });
+
+  if (!user) {
+    return next(new AppError(404, 'User not found'));
   }
-};
+  
+  res.status(201).json({
+    status: 'success',
+    data: {
+      user
+    }
+  });
+});
 
-exports.createUser = async (req, res) => {
-  try {
-    const { userName, email, password } = req.body
+exports.createUser = catchAsync (async (req, res) => {
+  const { userName, email, password } = req.body
 
-    let passwordHash = await bcryptjs.hash(password, 8)
+  let passwordHash = await bcryptjs.hash(password, 8)
 
-    const newUser = await User.create({
-      userName: userName,
-      email: email,
-      password: passwordHash
-    })
+  const newUser = await User.create({
+    userName: userName,
+    email: email,
+    password: passwordHash
+  })
 
-    res.status(201).json({
-      status: 'success',
-      message: 'The new User was created succesfully'
-    })
-
-  } catch (error) {
-    console.log(error); 
-  }
-}
+  res.status(201).json({
+    status: 'success',
+    message: 'The new User was created succesfully'
+  })
+})
 
 //exports.viewUser = async (req, res) => {
 //  try {

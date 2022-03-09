@@ -1,124 +1,108 @@
 const { Comment } = require('../models/comment.model');
 const { Post } = require('../models/post.model');
 const { User } = require('../models/user.model');
+const { AppError } = require('../util/appError');
+const { catchAsync } = require('../util/catchAsync');
 const { filterObj } = require('../util/filterObject');
 
-exports.getAllPost = async (req, res) => {
-  try {
-    const post = await Post.findAll({
-      Where: {status: 'active'},
+exports.getAllPost = catchAsync (async (req, res, next) => {
+  const post = await Post.findAll({
+    Where: {status: 'active'},
+    include: [{
+        model: User,
       include: [{
-          model: User,
-        include: [{
-            model: Comment
-        }]
-    }]
-    });
-    res.status(201).json({
+          model: Comment
+      }]
+  }]
+  });
+  res.status(201).json({
+    status: 'success',
+    data: {
+      post
+    }
+  });
+}) 
+
+exports.getPostById = catchAsync (async (req, res, next) => {
+  const { id } = req.params
+
+  const post = await Post.findOne({
+       
+      where: { id: id, status: 'active'},
+      include: [{model: User,
+      include: [{
+          model: Comment
+      }]}]
+  });
+
+  if (!post) {
+    return next(new AppError(404, 'No post found with the given ID'));
+  }
+
+  res.status(201).json({
       status: 'success',
       data: {
         post
       }
-    });
-  } catch (error) {
-    console.log(error);
+    });        
+
+}) 
+
+exports.createPost = catchAsync(async (req, res, next) => {
+  const { title, content, userId, imgUrl } = req.body;
+
+  if(!title || !content || !userId || !imgUrl){
+    return next( new AppError( 404, 'post not found'))
   }
-};
 
-exports.getPostById = async (req, res) => {
-    try {
-        const { id } = req.params
+  const newPost = await Post.create({
+    title: title,
+    content: content,
+    userId: userId,
+    imgUrl: imgUrl
+  });
 
-        const post = await Post.findOne({
-             
-            where: { id: id, status: 'active'},
-            include: [{model: User,
-            include: [{
-                model: Comment
-            }]}]
-        });
-
-        res.status(201).json({
-            status: 'success',
-            data: {
-              post
-            }
-          });        
-    } catch (error) {
-        console.log(error)
+  res.status(201).json({
+    status: 'success',
+    data: {
+      newPost
     }
-}
+  });
+}) 
 
-exports.createPost = async (req, res) => {
-  try {
-    const { title, content, userId, imgUrl } = req.body;
+exports.patchPost = catchAsync (async (req, res, next) => {
+  const {id} = req.params
+  const data = filterObj(req.body, 'title', 'content', 'userId', 'imgUrl')
 
-    const newPost = await Post.create({
-      title: title,
-      content: content,
-      userId: userId,
-      imgUrl: imgUrl
-    });
+  const post = await Post.findOne({
+    where: {id: id, status: 'active'},
+    include: [{model: User,
+          include: [{
+              model: Comment
+          }]}]
+      })
 
-    res.status(201).json({
-      status: 'success',
-      data: {
-        newPost
+    if(!post){
+      return next(
+        new AppError(404, 'Cant update post, invalid ID')
+      );
       }
-    });
-  } catch (error) {
-    console.log(error);
-  }
-}
+      await post.update({ ...data})
+      res.status(204).json({ status: 'success'})
+}) 
 
-exports.patchPost = async (req, res) => {
-  try {
-    const {id} = req.params
-    const data = filterObj(req.body, 'title', 'content', 'userId', 'imgUr')
-    
-
-    const post = await Post.findOne({
-      where: {id: id, status: 'active'},
-      include: [{model: User,
-            include: [{
-                model: Comment
-            }]}]
-        })
-
-      if(!post){
-        res.status(404).json({
-          status: 'error',
-          message: 'Cant update post, invalid ID'
-        });
-        return;
-        }
-        await post.update({ ...data})
-        res.status(204).json({ status: 'success'})
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-exports.deletePost  = async (req, res) => {
-try {
+exports.deletePost  = catchAsync(async (req, res) => {
   const { id } = req.params
 
   const post = await Post.findOne({
     where: {id:id, status: 'active'}
   })
-
   if(!post){
-    res.status(404).json({
-      status: 'error',
-      mesage: 'Cant update post, invalid id'
-    })
-    return  
+    return next(
+      new AppError(404, 'Cant update post, invalid ID')
+    );  
   }
   
   await post.update({status: 'deleted'})
   res.status(204).json({ status: 'success'})
-  
-} catch (error) {
-  console.log(error);
-}
-}
+}) 
