@@ -1,8 +1,8 @@
 
 const { Comment } = require('../models/comment.model');
-const { Post } = require('../models/post.model');
+//const { Post } = require('../models/post.model');
 const { User } = require('../models/user.model');
-const { filterObj } = require('../util/filterObject');
+//const { filterObj } = require('../util/filterObject');
 
 exports.getAllComment = async (req, res) => {
   try {
