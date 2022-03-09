@@ -1,6 +1,7 @@
 const { Comment } = require('../models/comment.model');
 const { Post } = require('../models/post.model');
 const { User } = require('../models/user.model');
+const { filterObj } = require('../util/filterObject');
 
 exports.getAllPost = async (req, res) => {
   try {
@@ -68,4 +69,56 @@ exports.createPost = async (req, res) => {
   } catch (error) {
     console.log(error);
   }
-};
+}
+
+exports.patchPost = async (req, res) => {
+  try {
+    const {id} = req.params
+    const data = filterObj(req.body, 'title', 'content', 'userId', 'imgUr')
+    
+
+    const post = await Post.findOne({
+      where: {id: id, status: 'active'},
+      include: [{model: User,
+            include: [{
+                model: Comment
+            }]}]
+        })
+
+      if(!post){
+        res.status(404).json({
+          status: 'error',
+          message: 'Cant update post, invalid ID'
+        });
+        return;
+        }
+        await post.update({ ...data})
+        res.status(204).json({ status: 'success'})
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+exports.deletePost  = async (req, res) => {
+try {
+  const { id } = req.params
+
+  const post = await Post.findOne({
+    where: {id:id, status: 'active'}
+  })
+
+  if(!post){
+    res.status(404).json({
+      status: 'error',
+      mesage: 'Cant update post, invalid id'
+    })
+    return  
+  }
+  
+  await post.update({status: 'deleted'})
+  res.status(204).json({ status: 'success'})
+  
+} catch (error) {
+  console.log(error);
+}
+}
