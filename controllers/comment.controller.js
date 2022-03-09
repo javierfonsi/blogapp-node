@@ -76,8 +76,8 @@ exports.patchComment = async ( req, res ) => {
   try {
     const { id } = req.params
     //Con el filter object de la linea de abajo funciona, 79 y 94 comentados, pero con con la 80 y 95 no
-    const data = filterObj(req.body, 'description', 'userId', 'postId')
-    //const { description } = req.body
+    //const data = filterObj(req.body, 'description', 'userId', 'postId')
+    const { description } = req.body
 
     const comment = await Comment.findOne({
       where: {id: id, status: 'active'},
@@ -91,8 +91,8 @@ exports.patchComment = async ( req, res ) => {
       return
     }
 
-    await comment.update({ ...data})
-    //await comment.update({ ...description})
+    //await comment.update({ ...data})
+    await comment.update({description})
     res.status(201).json({
       status: 'success',
       data: {
